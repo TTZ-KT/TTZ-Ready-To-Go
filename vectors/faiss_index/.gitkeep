@@ -1,0 +1,2 @@
+# This file ensures the faiss_index directory is tracked in Git
+# FAISS vector index files will be stored here during document processing

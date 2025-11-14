@@ -1,0 +1,2 @@
+# This file ensures the vectors directory is tracked in Git
+# The directory will be populated with FAISS index files at runtime

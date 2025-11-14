@@ -1,0 +1,16 @@
+{
+  "dns": ["8.8.8.8", "8.8.4.4", "1.1.1.1"],
+  "dns-opts": ["ndots:0"],
+  "dns-search": ["."],
+  "default-address-pools": [
+    {
+      "base": "172.17.0.0/16",
+      "size": 24
+    }
+  ],
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-size": "10m",
+    "max-file": "3"
+  }
+}

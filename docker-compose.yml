@@ -1,0 +1,116 @@
+version: '3.8'
+
+# TTZ.KT AI Platform - Docker Compose Configuration
+# Features:
+# - Automatic GPU detection (works with or without NVIDIA GPU)
+# - DNS configuration fix for network stability
+# - Persistent data storage
+# - Health checks
+# - Resource limits
+
+services:
+  # =========================================================================
+  # Ollama Service - Local LLM Runtime
+  # =========================================================================
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ttz-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+    restart: unless-stopped
+    networks:
+      - ttz-network
+    
+    # CRITICAL FIX: DNS configuration to prevent "Name or service not known" errors
+    dns:
+      - 8.8.8.8       # Google DNS Primary
+      - 8.8.4.4       # Google DNS Secondary
+      - 1.1.1.1       # Cloudflare DNS
+    
+    # GPU Support (automatically used if NVIDIA GPU + drivers available)
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # =========================================================================
+  # TTZ.KT AI Platform - Streamlit Application
+  # =========================================================================
+  ttz-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ttz-ai-platform
+    ports:
+      - "8501:8501"
+    volumes:
+      # Persistent vector storage
+      - ./vectors:/app/vectors
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+      - STREAMLIT_SERVER_PORT=8501
+      - STREAMLIT_SERVER_ADDRESS=0.0.0.0
+      # GPU will be auto-detected by PyTorch in application
+      - CUDA_VISIBLE_DEVICES=0
+    depends_on:
+      ollama:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - ttz-network
+    
+    # CRITICAL FIX: DNS configuration to prevent build failures
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+      - 1.1.1.1
+    
+    # GPU Support (automatically skipped if no GPU available)
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+# Network configuration with DNS
+networks:
+  ttz-network:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: ttz-bridge
+      com.docker.network.bridge.enable_icc: "true"
+      com.docker.network.bridge.enable_ip_masquerade: "true"
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.28.0.0/16
+
+# Persistent volumes
+volumes:
+  ollama_data:
+    driver: local
