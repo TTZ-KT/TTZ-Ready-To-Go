@@ -138,7 +138,7 @@ sudo systemctl restart docker
 **Option A - Clone with Git:**
 ```bash
 git clone https://github.com/TTZ-KT/TTZ-Ready-To-Go.git
-cd ttz.kt-thws-ready-to-go-rag-based-ai-platform
+cd TTZ-Ready-To-Go
 ```
 
 **Option B - Download ZIP:**
